@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
-import type { ChatMessage } from '../hooks/useChatMessages';
+import type { TextChatMessage } from '../hooks/useChatMessages';
 
 interface MessageBubbleProps {
-  message: ChatMessage;
+  message: TextChatMessage;
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {

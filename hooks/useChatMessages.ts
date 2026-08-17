@@ -1,44 +1,73 @@
-import { useCallback, useState } from 'react';
+import type { HelperRecommendation } from '../services/helpersApi';
+import type { UpcomingBooking } from '../services/bookingsApi';
 
 export type ChatMessageRole = 'user' | 'assistant';
 
-export interface ChatMessage {
+export interface TextChatMessage {
   id: string;
+  kind: 'text';
   role: ChatMessageRole;
   text: string;
 }
 
-const PLACEHOLDER_MESSAGES: ChatMessage[] = [
-  {
-    id: '1',
-    role: 'assistant',
-    text: "Hi! I'm your Chillmama assistant. What kind of help do you need?",
-  },
-  {
-    id: '2',
-    role: 'user',
-    text: 'I want to arrange a cleaning service tomorrow.',
-  },
-  {
-    id: '3',
-    role: 'assistant',
-    text: 'Sure — do you have a preferred time of day, and any language preference for the helper?',
-  },
-];
+export interface QuickReplyOption {
+  id: string;
+  label: string;
+}
 
-// No AI or backend wired up yet — sending just appends the message locally.
-export function useChatMessages() {
-  const [messages, setMessages] = useState<ChatMessage[]>(PLACEHOLDER_MESSAGES);
+export interface QuickRepliesChatMessage {
+  id: string;
+  kind: 'quick-replies';
+  role: 'assistant';
+  options: QuickReplyOption[];
+  selectedOptionId?: string;
+}
 
-  const sendMessage = useCallback((text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+export interface HelperCardsChatMessage {
+  id: string;
+  kind: 'helper-cards';
+  role: 'assistant';
+  helpers: HelperRecommendation[];
+}
 
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now().toString(), role: 'user', text: trimmed },
-    ]);
-  }, []);
+export interface PreviousHelperChatMessage {
+  id: string;
+  kind: 'previous-helper';
+  role: 'assistant';
+  helper: HelperRecommendation;
+}
 
-  return { messages, sendMessage };
+export interface BookingListChatMessage {
+  id: string;
+  kind: 'booking-list';
+  role: 'assistant';
+  bookings: UpcomingBooking[];
+  selectedBookingId?: string;
+}
+
+export interface SlotPickerChatMessage {
+  id: string;
+  kind: 'slot-picker';
+  role: 'assistant';
+  serviceId: string;
+  helperName: string;
+  serviceTitle: string;
+  slots: string[];
+  hasMore: boolean;
+  resolved?: boolean;
+  selectedSlot?: string;
+}
+
+export type ChatMessage =
+  | TextChatMessage
+  | QuickRepliesChatMessage
+  | HelperCardsChatMessage
+  | PreviousHelperChatMessage
+  | BookingListChatMessage
+  | SlotPickerChatMessage;
+
+let idCounter = 0;
+export function nextMessageId(prefix: string): string {
+  idCounter += 1;
+  return `${prefix}-${Date.now()}-${idCounter}`;
 }

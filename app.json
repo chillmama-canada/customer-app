@@ -25,6 +25,18 @@
       "eas": {
         "projectId": "84f09bdd-58e3-47c7-84e0-3aae0d36903f"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/mascot.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#F0FDFB"
+        }
+      ],
+      "expo-secure-store"
+    ]
   }
 }

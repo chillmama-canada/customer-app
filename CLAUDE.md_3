@@ -58,13 +58,9 @@ Swiping right on a recommendation card opens a full helper profile: extended bio
 
 Bottom tab navigation: Chat / My bookings / Profile.
 
-## 5. Registration & auth (Decided)
+## 5. Registration & auth (Decided direction, implementation still open)
 
-**Backend**: registration is linked to the same backend/database as the webapp — not a separate system. JWT-based `/api/mobile/auth/*` endpoints on the `chillmama-Webapp` Next.js backend (register, login, refresh, logout) — **built and shipped** — write to the same `Customer`/`Helper` Prisma tables NextAuth already uses for the webapp. One account, works on both surfaces.
-
-**Registration philosophy (Decided)**: the mobile app is the primary, full registration experience. The webapp's own registration page (`chillmama.ca/register`) stays fully functional as a fallback for customers who land there directly — not stripped down to lead-capture — but the Customer App must have its own complete, first-class registration flow, not something thinner than the webapp's.
-
-**This philosophy extends to Helpers too**: a Helper App is planned and will be ready before site launch. Helpers should follow the same pattern as customers — full registration in the Helper App, with the webapp's helper registration page remaining a functional fallback. Do not build a thinner/different registration experience for helpers just because their app comes later.
+**Decision**: registration is linked to the same backend/database as the webapp — not a separate system. See the recommendation given directly to the user: expose JWT-based `/api/mobile/auth/*` endpoints on the `chillmama-Webapp` Next.js backend (register, login, refresh), writing to the same `Customer`/`Helper` Prisma tables NextAuth already uses for the webapp. One account, works on both surfaces.
 
 **Open questions**:
 - Does the app need its own onboarding flow beyond auth (e.g. collecting initial preferences up front vs. letting the AI learn them conversationally over time)?
