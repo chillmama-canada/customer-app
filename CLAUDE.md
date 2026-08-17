@@ -1,0 +1,101 @@
+# Chillmama Customer App — Requirements & Flows
+
+**Status: living spec, not final.** This is being built incrementally — the chat-driven interaction model is new territory, so expect this document to evolve as real usage surfaces what works. Sections marked "Decided" are settled enough to build against; sections marked "Open question" need a decision before or during that piece of work — ask the user rather than assuming.
+
+This document defines the Customer App for Claude Code. Read this before starting work in this repo. This is a **separate project** from the `chillmama-Webapp` repo (admin panel + marketplace webfront) — it shares the same backend data and database via API, but is its own codebase, its own repo, and its own deploy lifecycle.
+
+## 1. Goal & AI persona (Decided)
+
+A mobile app for customers (working parents in Vancouver) to find, book, and manage domestic helper services — primarily through a conversational, chat-based interface with an AI assistant.
+
+**The AI's persona is a "Secretary/Butler" for busy parents** — not a generic chatbot or a search engine with a chat skin. It should feel proactive and personally attentive: initiating reminders unprompted, remembering preferences without being re-asked, and handling the coordination work a busy parent would otherwise have to do themselves. This framing should inform tone (warm, competent, low-friction) and behavior (proactive, not just reactive) throughout the app, not just the initial booking flow.
+
+## 2. Platform & tech stack (Decided)
+
+- **One codebase for Android and iOS** via **Expo** (React Native). Android is the current focus for testing; EAS Build is already configured for cloud-based iOS builds later, from Linux, without needing a Mac.
+- **Backend**: the *same* Chillmama Postgres database and Prisma schema as `chillmama-Webapp` — not a separate database. API access via `/api/mobile/` endpoints on the webapp's Next.js backend.
+- **File storage / CDN**: same Cloudflare R2 bucket as the webapp — helper photos, certificates, etc. are shared assets, not duplicated per app.
+- **State/data fetching**: `@tanstack/react-query`, matching the webapp's pattern.
+- **AI chatbot**: Claude API (Anthropic), via a backend proxy (not called directly from the mobile client) — see section 8.
+
+## 3. Core user flows
+
+### 3.1 Conversational booking flow (Decided)
+
+The main screen is a chat interface. The assistant parses natural-language requests into structured filters (service type, date, exclusions, language, minimum completed jobs, rating preference, etc.), asking a clarifying question when information needed to search is missing, rather than guessing.
+
+### 3.2 Recommendation display — swipe card stack (Decided, updated from earlier draft)
+
+**This replaces the earlier "list of cards" idea.** When the assistant has a helper shortlist, it presents them as a **swipeable card stack, dating-app style**:
+- Each card shows: helper photo, name, star rating, jobs completed, fee.
+- **Swipe left** = pass, AI immediately shows the next recommended helper.
+- **Swipe right** = view full detail on that helper (extended profile) before deciding to book.
+- This is a distinct interaction pattern from typical chat UI — likely a custom component (consider `react-native-deck-swiper` or a hand-rolled `Animated`/`Gesture Handler`-based implementation) rendered inline within the chat flow, not a separate screen.
+- **Open question**: does swiping left permanently exclude that helper from this search, or could they resurface later (e.g. if the customer wants to reconsider)? Confirm before building the exclusion logic.
+
+### 3.3 Booking confirmation (Decided)
+
+Confirmed conversationally (date, time, address, instructions) once a helper is selected via the swipe flow.
+
+### 3.4 Calendar integration & AI-initiated reminders (Decided, updated)
+
+**Reminders are initiated by the AI proactively within the chat**, not just as a passive push notification — consistent with the "Butler/Secretary" persona. On booking confirmation, the app also creates a device calendar entry. The assistant should message the customer ahead of the service date/time as itself, in-conversation (e.g. "Just a reminder — your cleaning with Maria is tomorrow at 10am"), which may also trigger a push notification if the app isn't open.
+- **Open question**: exact lead time(s) for reminders — still needs a decision (e.g. night before + morning of?).
+- **Open question**: does tapping the reminder notification deep-link into Chat, or into My Bookings? Given the Butler framing, deep-linking into Chat (continuing the conversation) fits the persona better than dropping the user into a plain list — worth deciding deliberately rather than defaulting.
+
+### 3.5 Helper detail view (Decided — new)
+
+Swiping right on a recommendation card opens a full helper profile: extended bio, full review history, availability calendar, certifications. This is a screen (or a large inline expansion), reachable only from the swipe flow for now.
+
+## 4. Screens (Decided — updated)
+
+- **Splash screen** — matches the website's branding: same logo (`chillmama.png`), same color/style language as the marketplace webfront. First thing shown on cold app launch.
+- **Login / Registration** — see section 6.
+- **Chat (home)** — primary screen. Bookings, recommendations (swipe cards), reminders, and general assistant interaction all happen here.
+- **Helper detail view** — reached from swiping right on a recommendation card.
+- **My bookings** — its own dedicated screen (confirmed, not chat-only). Shows booking history and upcoming bookings.
+- **Profile & settings** — account details, preferences.
+
+Bottom tab navigation: Chat / My bookings / Profile.
+
+## 5. Registration & auth (Decided direction, implementation still open)
+
+**Decision**: registration is linked to the same backend/database as the webapp — not a separate system. See the recommendation given directly to the user: expose JWT-based `/api/mobile/auth/*` endpoints on the `chillmama-Webapp` Next.js backend (register, login, refresh), writing to the same `Customer`/`Helper` Prisma tables NextAuth already uses for the webapp. One account, works on both surfaces.
+
+**Open questions**:
+- Does the app need its own onboarding flow beyond auth (e.g. collecting initial preferences up front vs. letting the AI learn them conversationally over time)?
+- Social login (Google/Facebook, mentioned in the original SRS for both Helper and Customer apps) — needed at launch, or email/password first?
+
+## 6. AI memory, personalization & privacy (Decided as a requirement, design still open — high priority, do not skip)
+
+The AI must remember customer-specific context across sessions: language preference, location, past helpers used per task type, meal/dietary preferences, and other accumulated history — enabling the "remembers you" Butler experience rather than re-asking every time.
+
+**This is explicitly a privacy-sensitive feature and must be treated as such from the start, not retrofitted later**:
+- Per-customer memory data must be **encrypted** — clarify with the user whether this means encryption at rest (database-level, e.g. Postgres column encryption or encrypting sensitive fields before storage) versus end-to-end (client-side encryption the server itself can't read). These have very different implications for how the AI can actually *use* the memory to personalize responses — full end-to-end encryption would prevent server-side AI processing of that data, so this needs to be resolved before building.
+- Consider Canadian privacy law (PIPEDA) implications given this stores personal preference/history data about real families — data retention policy, and a way for the customer to view/delete their stored memory, are worth designing in from the start rather than bolting on later.
+- **Open question**: is this memory scoped per-customer only, or does anything ever get aggregated/anonymized for platform-level insights (e.g. "customers who book cleaning also often book X")? Different privacy posture depending on the answer — don't assume aggregation is fine without confirming.
+
+## 7. Phase 2 (not built yet, documented for architecture awareness)
+
+Housekeeping instructions, recipe/cooking recommendations, personalized perk recommendations — the chat architecture and the memory system in section 6 should be designed so these slot in later without a rewrite, since they all depend on the same "AI remembers and personalizes" foundation.
+
+## 8. Explicitly NOT yet decided — confirm with the user, don't assume
+
+- Exact reminder lead times (section 3.4)
+- Swipe-left exclusion permanence (section 3.2)
+- Reminder notification deep-link target (section 3.4)
+- Encryption approach for the memory system — at-rest vs end-to-end (section 6)
+- Data retention / deletion policy for AI memory (section 6)
+- Onboarding flow scope and social login timing (section 5)
+- **AI chatbot backend architecture**: runs via a backend proxy on the webapp's Next.js API (recommended, so Claude API keys never ship in the mobile bundle and tool-calling against the database happens server-side) — this is the assumed direction but should be explicitly confirmed before the AI integration work starts.
+- Push notification service specifics (Expo push service vs. a dedicated service)
+
+## 9. Working process note
+
+This spec is being developed step by step alongside the build, not fully upfront — the conversational/AI-driven interaction pattern is new enough that some decisions are better made once there's a working prototype to react to.
+
+**Two companion files in this repo track ongoing state — keep them updated, don't just note things in conversation:**
+- **`OPEN-QUESTIONS.md`** — every open question from section 8 above lives here too, in a format meant to persist and grow. When Claude Code hits a new open question mid-task, add it here (with context) and ask the user, rather than guessing a default — these are product decisions with real downstream implications (especially privacy/encryption in section 6), not implementation details. When a question gets resolved, move it to that file's "Resolved" section with the decision, don't delete it.
+- **`WEBAPP-CHANGES-NEEDED.md`** — since this app shares the webapp's database/backend, some work here will require changes in the separate `chillmama-Webapp` repo (new API endpoints, schema changes). Log those here as they're discovered, so they're not lost when that work eventually happens in a different repo/session.
+
+Both files are the source of truth across sessions — not this chat, not any individual Claude Code conversation. Read them at the start of a session alongside this file, and update them as you go.
