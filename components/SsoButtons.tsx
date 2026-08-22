@@ -1,13 +1,14 @@
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
 // Providers are UI-only for now — there's no backend OAuth token-exchange
 // endpoint yet (see WEBAPP-CHANGES-NEEDED.md). Swap handlePress for the real
 // sign-in flow once that's wired up.
 const PROVIDERS = [
-  { key: 'google', label: 'Continue with Google' },
-  { key: 'apple', label: 'Continue with Apple' },
-  { key: 'facebook', label: 'Continue with Facebook' },
+  { key: 'google', label: 'Continue with Google', icon: 'logo-google' },
+  { key: 'apple', label: 'Continue with Apple', icon: 'logo-apple' },
+  { key: 'facebook', label: 'Continue with Facebook', icon: 'logo-facebook' },
 ] as const;
 
 export function SsoButtons() {
@@ -17,16 +18,19 @@ export function SsoButtons() {
 
   return (
     <View>
-      {PROVIDERS.map((provider) => (
-        <Pressable
-          key={provider.key}
-          testID={`sso-${provider.key}-button`}
-          style={styles.button}
-          onPress={() => handlePress(provider.label)}
-        >
-          <Text style={styles.buttonText}>{provider.label}</Text>
-        </Pressable>
-      ))}
+      <View style={styles.row}>
+        {PROVIDERS.map((provider) => (
+          <Pressable
+            key={provider.key}
+            testID={`sso-${provider.key}-button`}
+            accessibilityLabel={provider.label}
+            style={styles.button}
+            onPress={() => handlePress(provider.label)}
+          >
+            <Ionicons name={provider.icon} size={22} color={colors.ink} />
+          </Pressable>
+        ))}
+      </View>
 
       <View style={styles.dividerRow}>
         <View style={styles.dividerLine} />
@@ -38,24 +42,24 @@ export function SsoButtons() {
 }
 
 const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   button: {
+    flex: 1,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 24,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.white,
-    marginBottom: 10,
-  },
-  buttonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.ink,
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 16,
     gap: 10,
   },
   dividerLine: {

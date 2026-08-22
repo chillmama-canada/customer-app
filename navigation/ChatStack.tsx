@@ -1,7 +1,9 @@
+import { Image, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ChatScreen } from '../screens/ChatScreen';
 import { HelperDetailScreen } from '../screens/HelperDetailScreen';
 import { ChatFlowProvider } from '../contexts/ChatFlowContext';
+import { colors } from '../theme/colors';
 
 export type ChatStackParamList = {
   ChatHome: undefined;
@@ -16,8 +18,23 @@ const Stack = createNativeStackNavigator<ChatStackParamList>();
 export function ChatStack() {
   return (
     <ChatFlowProvider>
-      <Stack.Navigator>
-        <Stack.Screen name="ChatHome" component={ChatScreen} options={{ headerTitle: 'Chillmama' }} />
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.teal },
+          headerTintColor: colors.white,
+          headerTitleStyle: { color: colors.white },
+        }}
+      >
+        <Stack.Screen
+          name="ChatHome"
+          component={ChatScreen}
+          options={{
+            headerTitle: 'Chillmama',
+            headerLeft: () => (
+              <Image source={require('../assets/mascot.png')} style={styles.logo} resizeMode="contain" />
+            ),
+          }}
+        />
         <Stack.Screen
           name="HelperDetail"
           component={HelperDetailScreen}
@@ -27,3 +44,11 @@ export function ChatStack() {
     </ChatFlowProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  logo: {
+    width: 30,
+    height: 30,
+    marginRight: 8,
+  },
+});

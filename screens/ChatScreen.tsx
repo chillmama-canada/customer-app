@@ -20,7 +20,8 @@ type Props = NativeStackScreenProps<ChatStackParamList, 'ChatHome'>;
 // lives in ChatFlowContext so HelperDetailScreen can continue the same
 // conversation after "Book an appointment." This screen just renders it.
 export function ChatScreen({ navigation }: Props) {
-  const { messages, sendFreeText, selectQuickReply, selectBooking, selectSlot, requestMoreSlots } = useChatFlow();
+  const { messages, sendFreeText, selectQuickReply, selectBooking, selectSlot, requestMoreSlots, likeHelper } =
+    useChatFlow();
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   const goToHelperDetail = (helperId: string) => navigation.navigate('HelperDetail', { helperId });
@@ -44,7 +45,11 @@ export function ChatScreen({ navigation }: Props) {
                 return (
                   <View testID="chat-helper-cards-message" style={styles.cardsRow}>
                     <View style={styles.cardsContainer}>
-                      <HelperSwipeDeck helpers={item.helpers} onSwipeRight={(helper) => goToHelperDetail(helper.id)} />
+                      <HelperSwipeDeck
+                        helpers={item.helpers}
+                        onLike={likeHelper}
+                        onViewDetail={(helper) => goToHelperDetail(helper.id)}
+                      />
                     </View>
                   </View>
                 );

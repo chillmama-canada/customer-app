@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import type { QuickRepliesChatMessage } from '../hooks/useChatMessages';
 
@@ -9,6 +10,7 @@ interface QuickRepliesProps {
 
 export function QuickReplies({ message, onSelect }: QuickRepliesProps) {
   const resolved = Boolean(message.selectedOptionId);
+  const hasIcons = message.options.some((o) => 'iconUrl' in o);
 
   return (
     <View style={styles.row}>
@@ -27,6 +29,18 @@ export function QuickReplies({ message, onSelect }: QuickRepliesProps) {
               onPress={() => onSelect(option.id)}
               disabled={resolved}
             >
+              {hasIcons ? (
+                option.iconUrl ? (
+                  <Image source={{ uri: option.iconUrl }} style={styles.chipIcon} resizeMode="contain" />
+                ) : (
+                  <Ionicons
+                    name="pricetag-outline"
+                    size={16}
+                    color={isSelected ? colors.white : colors.tealDark}
+                    style={styles.chipIconFallback}
+                  />
+                )
+              ) : null}
               <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{option.label}</Text>
             </Pressable>
           );
@@ -49,6 +63,8 @@ const styles = StyleSheet.create({
     maxWidth: '92%',
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.teal,
     borderRadius: 18,
@@ -61,6 +77,14 @@ const styles = StyleSheet.create({
   },
   chipDimmed: {
     opacity: 0.4,
+  },
+  chipIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 6,
+  },
+  chipIconFallback: {
+    marginRight: 6,
   },
   chipText: {
     fontSize: 13,

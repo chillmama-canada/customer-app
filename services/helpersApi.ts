@@ -9,12 +9,13 @@ export interface HelperRecommendation {
   jobsCompleted: number;
   fee: number;
   serviceTitle: string;
+  serviceId: string;
+  isLiked: boolean;
 }
 
 export interface HelperDetail extends HelperRecommendation {
   bio: string | null;
   completionRate: number;
-  serviceId: string;
   serviceDescription: string;
   areaName: string | null;
 }
@@ -45,8 +46,29 @@ async function get<T>(path: string): Promise<T> {
   }
 }
 
+async function post<T>(path: string, payload: unknown): Promise<T> {
+  try {
+    const response = await api.post<ApiSuccessBody<T>>(path, payload);
+    return response.data.data;
+  } catch (err) {
+    const axiosError = err as AxiosError<ApiErrorBody>;
+    throw new HelpersApiError(axiosError.response?.data?.error ?? FALLBACK_ERROR_MESSAGE);
+  }
+}
+
+async function del<T>(path: string): Promise<T> {
+  try {
+    const response = await api.delete<ApiSuccessBody<T>>(path);
+    return response.data.data;
+  } catch (err) {
+    const axiosError = err as AxiosError<ApiErrorBody>;
+    throw new HelpersApiError(axiosError.response?.data?.error ?? FALLBACK_ERROR_MESSAGE);
+  }
+}
+
 // Not yet filtered by anything the AI chat parses beyond category (service
-// date/exclusions/etc.) — see the route's own comment.
+// date/exclusions/etc.) — see the route's own comment. Liked helpers are
+// boosted to the front server-side.
 export function getRecommendedHelpers(categoryId?: string): Promise<HelperRecommendation[]> {
   const query = categoryId ? `?categoryId=${categoryId}` : '';
   return get<HelperRecommendation[]>(`/api/mobile/helpers/recommended${query}`);
@@ -61,4 +83,18 @@ export function getPreviousHelpers(categoryId: string): Promise<HelperRecommenda
 
 export function getHelperDetail(id: string): Promise<HelperDetail> {
   return get<HelperDetail>(`/api/mobile/helpers/${id}`);
+}
+
+// "Liked helpers" — swiping right on the recommendation deck saves the
+// helper's currently-shown service here.
+export function getLikedHelpers(): Promise<HelperRecommendation[]> {
+  return get<HelperRecommendation[]>('/api/mobile/favourites');
+}
+
+export function likeHelperService(serviceId: string): Promise<null> {
+  return post<null>('/api/mobile/favourites', { serviceId });
+}
+
+export function unlikeHelperService(serviceId: string): Promise<null> {
+  return del<null>(`/api/mobile/favourites/${serviceId}`);
 }

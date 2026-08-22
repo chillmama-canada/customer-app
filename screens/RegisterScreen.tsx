@@ -21,7 +21,8 @@ import { validatePassword, PASSWORD_HINT } from '../services/passwordValidation'
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
 export function RegisterScreen({ navigation }: Props) {
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,8 +30,8 @@ export function RegisterScreen({ navigation }: Props) {
 
   const handleSubmit = async () => {
     setError('');
-    if (!name.trim() || !email.trim() || !password) {
-      setError('Fill in your name, email, and password.');
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
+      setError('Fill in your first name, last name, email, and password.');
       return;
     }
 
@@ -42,7 +43,12 @@ export function RegisterScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      const result = await register({ name: name.trim(), email: email.trim(), password });
+      const result = await register({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        password,
+      });
       navigation.navigate('Otp', { email: result.email, debugOtp: result.debugOtp });
     } catch (err) {
       setError(err instanceof AuthApiError ? err.message : 'Something went wrong. Please try again.');
@@ -69,15 +75,29 @@ export function RegisterScreen({ navigation }: Props) {
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <View style={styles.field}>
-              <Text style={styles.label}>Full name</Text>
+              <Text style={styles.label}>First name</Text>
               <TextInput
-                testID="register-name-input"
+                testID="register-first-name-input"
                 style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="Jane Doe"
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Jane"
                 placeholderTextColor={colors.grayLight}
-                autoComplete="name"
+                autoComplete="given-name"
+                editable={!loading}
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Last name</Text>
+              <TextInput
+                testID="register-last-name-input"
+                style={styles.input}
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Doe"
+                placeholderTextColor={colors.grayLight}
+                autoComplete="family-name"
                 editable={!loading}
               />
             </View>

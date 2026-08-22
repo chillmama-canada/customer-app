@@ -8,7 +8,12 @@ import {
   type Category,
   type UpcomingBooking,
 } from '../services/bookingsApi';
-import { getRecommendedHelpers, getPreviousHelpers, type HelperRecommendation } from '../services/helpersApi';
+import {
+  getRecommendedHelpers,
+  getPreviousHelpers,
+  likeHelperService,
+  type HelperRecommendation,
+} from '../services/helpersApi';
 import {
   nextMessageId,
   type ChatMessage,
@@ -53,6 +58,7 @@ interface ChatFlowContextValue {
   selectSlot: (messageId: string, slotIso: string) => void;
   requestMoreSlots: (messageId: string) => void;
   startBookingForService: (params: StartBookingParams) => void;
+  likeHelper: (helper: HelperRecommendation) => void;
 }
 
 const ChatFlowContext = createContext<ChatFlowContextValue | undefined>(undefined);
@@ -170,7 +176,9 @@ export function ChatFlowProvider({ children }: { children: ReactNode }) {
       }
       return [
         text('What kind of help do you need?'),
-        quickReplies(categories.map((c) => ({ id: `category:${c.id}:${c.name}`, label: c.name }))),
+        quickReplies(
+          categories.map((c) => ({ id: `category:${c.id}:${c.name}`, label: c.name, iconUrl: c.iconUrl }))
+        ),
       ];
     });
   }, [assistantTurn, text, quickReplies]);
@@ -408,6 +416,14 @@ export function ChatFlowProvider({ children }: { children: ReactNode }) {
     [patchMessage, appendMessages, assistantTurn, text]
   );
 
+  // Fire-and-forget on purpose — swiping should stay fluid, not pause for a
+  // network round trip or interrupt the deck with a chat message every like.
+  // The heart badge/animation is the confirmation; "Liked helpers" (Profile)
+  // is where the customer can verify it actually saved.
+  const likeHelper = useCallback((helper: HelperRecommendation) => {
+    likeHelperService(helper.serviceId).catch(() => {});
+  }, []);
+
   const value: ChatFlowContextValue = {
     messages,
     sendFreeText,
@@ -416,6 +432,7 @@ export function ChatFlowProvider({ children }: { children: ReactNode }) {
     selectSlot,
     requestMoreSlots,
     startBookingForService,
+    likeHelper,
   };
 
   return <ChatFlowContext.Provider value={value}>{children}</ChatFlowContext.Provider>;

@@ -18,7 +18,12 @@ import type { HelperRecommendation } from '../services/helpersApi';
 interface HelperSwipeDeckProps {
   helpers: HelperRecommendation[];
   onSwipeLeft?: (helper: HelperRecommendation) => void;
-  onSwipeRight: (helper: HelperRecommendation) => void;
+  // Right swipe / heart button — saves the helper to the customer's liked
+  // list (see services/helpersApi.ts likeHelperService) and advances.
+  onLike: (helper: HelperRecommendation) => void;
+  // Tapping the photo — opens the detail screen without consuming the card,
+  // so it's still there if the customer comes back without deciding.
+  onViewDetail: (helper: HelperRecommendation) => void;
   onEmpty?: () => void;
 }
 
@@ -27,7 +32,7 @@ const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.28;
 const OUT_OF_SCREEN_X = SCREEN_WIDTH * 1.5;
 const ANIMATION_DURATION = 220;
 
-export function HelperSwipeDeck({ helpers, onSwipeLeft, onSwipeRight, onEmpty }: HelperSwipeDeckProps) {
+export function HelperSwipeDeck({ helpers, onSwipeLeft, onLike, onViewDetail, onEmpty }: HelperSwipeDeckProps) {
   const [index, setIndex] = useState(0);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -39,7 +44,7 @@ export function HelperSwipeDeck({ helpers, onSwipeLeft, onSwipeRight, onEmpty }:
     if (direction === 'left') {
       onSwipeLeft?.(helper);
     } else {
-      onSwipeRight(helper);
+      onLike(helper);
     }
 
     translateX.value = 0;
@@ -124,9 +129,9 @@ export function HelperSwipeDeck({ helpers, onSwipeLeft, onSwipeRight, onEmpty }:
 
         <GestureDetector gesture={gesture}>
           <Animated.View style={[styles.cardWrapper, cardStyle]}>
-            <HelperCard helper={current} onPressPhoto={() => triggerSwipe('right')} />
+            <HelperCard helper={current} onPressPhoto={() => onViewDetail(current)} />
             <Animated.View style={[styles.badge, styles.likeBadge, likeBadgeStyle]}>
-              <Text style={styles.badgeText}>VIEW</Text>
+              <Text style={styles.badgeText}>LIKE</Text>
             </Animated.View>
             <Animated.View style={[styles.badge, styles.passBadge, passBadgeStyle]}>
               <Text style={styles.badgeText}>PASS</Text>
@@ -144,11 +149,11 @@ export function HelperSwipeDeck({ helpers, onSwipeLeft, onSwipeRight, onEmpty }:
           <Ionicons name="close" size={28} color={colors.pink} />
         </Pressable>
         <Pressable
-          testID="swipe-view-button"
-          style={[styles.actionButton, styles.viewButton]}
+          testID="swipe-like-button"
+          style={[styles.actionButton, styles.likeButton]}
           onPress={() => triggerSwipe('right')}
         >
-          <Ionicons name="eye" size={24} color={colors.white} />
+          <Ionicons name="heart" size={24} color={colors.white} />
         </Pressable>
       </View>
     </View>
@@ -218,7 +223,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.pink,
   },
-  viewButton: {
+  likeButton: {
     backgroundColor: colors.teal,
   },
   emptyState: {

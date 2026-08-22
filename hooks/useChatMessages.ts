@@ -13,6 +13,10 @@ export interface TextChatMessage {
 export interface QuickReplyOption {
   id: string;
   label: string;
+  // Category picker only — falls back to the parent category's icon
+  // server-side when a category has none of its own (see
+  // GET /api/mobile/categories).
+  iconUrl?: string | null;
 }
 
 export interface QuickRepliesChatMessage {

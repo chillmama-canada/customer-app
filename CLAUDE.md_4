@@ -20,58 +20,43 @@ A mobile app for customers (working parents in Vancouver) to find, book, and man
 
 ## 3. Core user flows
 
-### 3.1 Post-login proactive routine (Decided — the AI Butler's main loop)
+### 3.1 Conversational booking flow (Decided)
 
-Unlike a passive chatbot waiting for input, the assistant runs a **defined routine automatically on login**, consistent with the Butler/Secretary persona. This is the primary interaction loop the app is built around, and it repeats — it's not a one-time onboarding script:
+The main screen is a chat interface. The assistant parses natural-language requests into structured filters (service type, date, exclusions, language, minimum completed jobs, rating preference, etc.), asking a clarifying question when information needed to search is missing, rather than guessing.
 
-1. **Greet the customer.**
-2. **Check upcoming bookings.** If any exist, ask if she needs help with them. If there are multiple, ask which one she wants to check first.
-3. **If no upcoming bookings**: ask if she wants to arrange a new service.
-   - If yes: list service categories, let her choose one.
-   - Then ask: recommend helpers, or re-book a previous helper for this service type (if one exists)? If no previous helper for that type, go straight to the recommendation flow (3.2).
-4. **Recommendation flow** (see 3.2 for the interaction mechanics).
-5. **Booking an appointment**: once a helper is selected via "Book an appointment" (3.3), check both the customer's and the helper's availability. Offer **3 overlapping time slots**. If none work, offer **3 more** (6 total across two rounds). Open question: what happens if none of the 6 work — see section 8.
-6. **Confirm the booking, update the schedule, then loop back to step 2** and wait for further instruction.
+### 3.2 Recommendation display — swipe card stack (Decided, updated from earlier draft)
 
-### 3.2 Recommendation display — swipe + tap (Decided, UPDATED AGAIN — three gestures now)
+**This replaces the earlier "list of cards" idea.** When the assistant has a helper shortlist, it presents them as a **swipeable card stack, dating-app style**:
+- Each card shows: helper photo, name, star rating, jobs completed, fee.
+- **Swipe left** = pass, AI immediately shows the next recommended helper.
+- **Swipe right** = view full detail on that helper (extended profile) before deciding to book.
+- This is a distinct interaction pattern from typical chat UI — likely a custom component (consider `react-native-deck-swiper` or a hand-rolled `Animated`/`Gesture Handler`-based implementation) rendered inline within the chat flow, not a separate screen.
+- **Open question**: does swiping left permanently exclude that helper from this search, or could they resurface later (e.g. if the customer wants to reconsider)? Confirm before building the exclusion logic.
 
-Still a dating-app-style card stack. **Gesture mapping, current version**:
-- **Swipe left** = skip this helper, AI shows the next recommendation.
-- **Tap the card/image** = view full detail (opens the service/helper detail page — 3.3).
-- **Swipe right** = **like/save this helper** to the customer's liked-helpers list (see 3.6). This is a *different* meaning than swipe-right originally had (view detail) — that role is now handled by tap. Swipe-right doesn't skip past the card's usefulness to the current search; the AI should still let the customer continue browsing/deciding on this search after a like, not treat "liked" as equivalent to "selected for booking."
-- **Open question** (unchanged): does swipe-left permanently exclude that helper from this search, or could they resurface later?
+### 3.3 Booking confirmation (Decided)
 
-### 3.6 Liked helpers & AI prioritization (Decided — new)
+Confirmed conversationally (date, time, address, instructions) once a helper is selected via the swipe flow.
 
-Swiping right on a recommendation card saves that helper to a persistent **liked-helpers list**, viewable later (placement TBD — see section 8). When the AI Butler recommends helpers for a future request, it should **prioritize matches from the customer's liked list** before pulling in other candidates — e.g. if a liked helper offers the requested service category and is available, surface them first, ahead of the general recommendation pool.
+### 3.4 Calendar integration & AI-initiated reminders (Decided, updated)
 
-### 3.3 Service/helper detail page (Decided — new)
+**Reminders are initiated by the AI proactively within the chat**, not just as a passive push notification — consistent with the "Butler/Secretary" persona. On booking confirmation, the app also creates a device calendar entry. The assistant should message the customer ahead of the service date/time as itself, in-conversation (e.g. "Just a reminder — your cleaning with Maria is tomorrow at 10am"), which may also trigger a push notification if the app isn't open.
+- **Open question**: exact lead time(s) for reminders — still needs a decision (e.g. night before + morning of?).
+- **Open question**: does tapping the reminder notification deep-link into Chat, or into My Bookings? Given the Butler framing, deep-linking into Chat (continuing the conversation) fits the persona better than dropping the user into a plain list — worth deciding deliberately rather than defaulting.
 
-Reached by tapping a recommendation card. Shows the full helper profile. Exactly **two buttons at the bottom**: **Back** (returns to the swipe stack) and **Book an appointment** (starts time-slot negotiation, 3.1 step 5).
+### 3.5 Helper detail view (Decided — new)
 
-### 3.4 Appointment time-slot negotiation (Decided — new)
+Swiping right on a recommendation card opens a full helper profile: extended bio, full review history, availability calendar, certifications. This is a screen (or a large inline expansion), reachable only from the swipe flow for now.
 
-Triggered by "Book an appointment." Checks both parties' availability, offers 3 overlapping slots, offers 3 more if all are declined. See section 8 for the "what if none of the 6 work" open question.
+## 4. Screens (Decided — updated)
 
-### 3.5 Calendar integration & AI-initiated reminders (Decided)
-
-**Reminders are initiated by the AI proactively within the chat**, not just as a passive push notification — consistent with the Butler persona. On booking confirmation, the app also creates a device calendar entry. The assistant should message the customer ahead of the service date/time as itself, in-conversation, which may also trigger a push notification if the app isn't open.
-- **Open question**: exact lead time(s) for reminders.
-- **Open question**: does tapping the reminder notification deep-link into Chat, or into My Bookings?
-
-## 4. Screens & visual requirements (Decided — updated)
-
-- **Splash screen** — matches the website's branding: same logo (`chillmama.png`), same color/style language as the marketplace webfront.
-- **Login / Registration** — see section 5. **Social login buttons are icon-only** (Google, Apple, Facebook icons, no "Continue with..." text) to save vertical space.
-- **Chat (home)** — primary screen. The post-login routine (3.1), recommendations (3.2), and general assistant interaction happen here. **Top bar**: Chillmama logo in the top-left corner, with a branded (colored, not plain white) background.
-- **Service/helper detail page** — reached by tapping a recommendation card (3.3). Back / Book an appointment buttons.
-- **Service category browsing** — each category shown with its own icon; **if a subcategory has no icon of its own, fall back to displaying its parent category's icon** rather than a blank/generic placeholder.
-- **My bookings** — dedicated screen. Shows booking history and upcoming bookings.
-- **Saver** — new tab for daily perks/discounts sent to the customer. Full perk/discount *logic* is Phase 2 (section 7), but the tab itself and its screen shell are being built now — placeholder/"coming soon" content is fine until Phase 2 lands, unless told otherwise.
-- **Liked helpers list** — where a customer views helpers they've swiped right on (3.6). Placement not yet decided — see section 8 (assumption for now: accessible from Profile, but not confirmed).
+- **Splash screen** — matches the website's branding: same logo (`chillmama.png`), same color/style language as the marketplace webfront. First thing shown on cold app launch.
+- **Login / Registration** — see section 6.
+- **Chat (home)** — primary screen. Bookings, recommendations (swipe cards), reminders, and general assistant interaction all happen here.
+- **Helper detail view** — reached from swiping right on a recommendation card.
+- **My bookings** — its own dedicated screen (confirmed, not chat-only). Shows booking history and upcoming bookings.
 - **Profile & settings** — account details, preferences.
 
-**Bottom tab navigation**: Chat / My bookings / Saver / Profile. **Colorful branded background, not white** — matches the app's overall visual identity rather than a neutral system-default tab bar.
+Bottom tab navigation: Chat / My bookings / Profile.
 
 ## 5. Registration & auth (Decided)
 
@@ -100,16 +85,9 @@ Housekeeping instructions, recipe/cooking recommendations, personalized perk rec
 
 ## 8. Explicitly NOT yet decided — confirm with the user, don't assume
 
-- Exact reminder lead times (section 3.5)
+- Exact reminder lead times (section 3.4)
 - Swipe-left exclusion permanence (section 3.2)
-- Reminder notification deep-link target (section 3.5)
-- **What happens if none of the 6 offered time slots work** (section 3.4) — offer more rounds, let the customer propose a time, or something else?
-- **How multiple upcoming bookings are presented for selection** (section 3.1 step 2) — a list within the chat message, or the swipe-card pattern reused here too?
-- **What the AI does if the customer has no upcoming bookings AND doesn't want a new service** (section 3.1 step 3) — just wait idle, or offer something else (browse, past history, etc.)?
-- **Liked helpers list placement** (section 3.6, section 4) — assumed to live under Profile for now, not explicitly confirmed.
-- **Liked list mechanics** — is there a cap on how many helpers can be liked? Can a customer un-like? Does a liked helper ever get auto-removed (e.g. if they leave the platform)?
-- **Saver tab content scope** — is any real perk/discount content expected in the initial build, or is a placeholder/"coming soon" screen sufficient until Phase 2?
-- **Bottom tab order** — Chat / My Bookings / Saver / Profile is the assumed order; not explicitly confirmed.
+- Reminder notification deep-link target (section 3.4)
 - Encryption approach for the memory system — at-rest vs end-to-end (section 6)
 - Data retention / deletion policy for AI memory (section 6)
 - Onboarding flow scope and social login timing (section 5)
